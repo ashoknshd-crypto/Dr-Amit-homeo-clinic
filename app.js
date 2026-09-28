@@ -18,15 +18,9 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function fetchVisitorCount() {
-  fetch('/api/visitor-count', { method: 'POST' })
-    .then(res => res.json())
-    .then(data => {
-      if (data.count) {
-        const vc = document.getElementById('visitor-count');
-        if (vc) vc.textContent = data.count;
-      }
-    })
-    .catch(err => console.error('Error fetching visitor count:', err));
+  // Static site - No DB backend
+  const vc = document.getElementById('visitor-count');
+  if (vc) vc.textContent = "154+"; // Fake static count
 }
 
 /* --------------------------------------------------------------------------
@@ -827,12 +821,12 @@ function initBookingForms() {
         return;
       }
 
-      // Send to Backend API
-      fetch('/api/appointments', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, phone, condition, date: date || new Date().toISOString().split('T')[0], message })
-      }).catch(console.error);
+      // Send to Backend API (Removed for static site)
+      // fetch('/api/appointments', {
+      //   method: 'POST',
+      //   headers: { 'Content-Type': 'application/json' },
+      //   body: JSON.stringify({ name, phone, condition, date: date || new Date().toISOString().split('T')[0], message })
+      // }).catch(console.error);
 
       // Build WhatsApp message
       const textMessage = `*New Appointment Request - Shri Sai Homeo Cure Clinic*%0A%0A` +
@@ -1081,9 +1075,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
 async function loadSettings() {
   try {
-    const res = await fetch('/api/settings');
-    if (!res.ok) return;
-    const settings = await res.json();
+    // Static site mode - use default images
+    const settings = {
+      home_image: 'assets/clinic-front.jpg',
+      doctor_image: 'assets/doctor-amit-singh.jpg',
+      why_us_image: 'assets/remedies.jpg'
+    };
     
     if (settings.home_image) {
       const img = document.getElementById('site-home_image');
@@ -1109,9 +1106,8 @@ async function initDiseaseGallery() {
   if (!slider) return;
 
   try {
-    const res = await fetch('/api/gallery');
-    if (!res.ok) return;
-    const images = await res.json();
+    // Static site mode - no dynamic gallery
+    const images = [];
     
     if (images.length === 0) {
       // Hide the gallery section if no images
