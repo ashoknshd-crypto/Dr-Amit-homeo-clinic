@@ -817,9 +817,10 @@ function initBookingForms() {
       const phone = form.querySelector('[name="patient_phone"]')?.value || '';
       const condition = form.querySelector('[name="condition"]')?.value || 'General Consultation';
       const date = form.querySelector('[name="preferred_date"]')?.value || 'Earliest Available';
-      const slot = form.querySelector('[name="preferred_slot"]')?.value || 'Morning (10AM - 2PM)';
+      const slot = form.querySelector('[name="preferred_slot"]')?.value || 'Morning 10:30 AM to 1:00 PM';
       const consultType = form.querySelector('input[name="consult_type"]:checked')?.value || 'In-Clinic (Raipur)';
       const message = form.querySelector('[name="patient_message"]')?.value || 'None';
+      const address = form.querySelector('[name="patient_address"]')?.value || 'Not provided';
 
       if (!phone || phone.trim().length < 10) {
         showToast(currentLang === 'hi' ? 'कृपया मान्य 10 अंकों का मोबाइल नंबर दर्ज करें।' : 'Please enter a valid 10-digit mobile number.', 'error');
@@ -840,6 +841,7 @@ function initBookingForms() {
         `🩺 *Condition:* ${encodeURIComponent(condition)}%0A` +
         `🏥 *Mode:* ${encodeURIComponent(consultType)}%0A` +
         `💰 *Consultation Fee:* ₹500%0A` +
+        `📍 *Address:* ${encodeURIComponent(address)}%0A` +
         `📅 *Preferred Date:* ${encodeURIComponent(date)}%0A` +
         `⏰ *Preferred Slot:* ${encodeURIComponent(slot)}%0A` +
         `📝 *Notes:* ${encodeURIComponent(message)}%0A%0A` +

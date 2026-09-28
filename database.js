@@ -1,76 +1,87 @@
-const sqlite3 = require('sqlite3').verbose();
+const mongoose = require('mongoose');
 const bcrypt = require('bcrypt');
-const path = require('path');
 
-const dbPath = path.resolve(__dirname, 'clinic.db');
+const MONGO_URI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/clinic';
 
-const db = new sqlite3.Database(dbPath, (err) => {
-  if (err) {
-    console.error('Error opening database:', err.message);
-  } else {
-    console.log('Connected to the SQLite database.');
-    
-    // Create users table
-    db.run(`CREATE TABLE IF NOT EXISTS users (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      username TEXT UNIQUE,
-      password TEXT
-    )`, (err) => {
-      if (!err) {
-        // Seed an admin user if not exists
-        db.get("SELECT * FROM users WHERE username = 'admin'", (err, row) => {
-          if (!row) {
-            const saltRounds = 10;
-            bcrypt.hash('admin123', saltRounds, (err, hash) => {
-              if (!err) {
-                db.run("INSERT INTO users (username, password) VALUES (?, ?)", ['admin', hash]);
-                console.log('Default admin user created. (username: admin, password: admin123)');
-              }
-            });
-          }
-        });
+mongoose.connect(MONGO_URI)
+  .then(() => {
+    console.log('Connected to MongoDB database.');
+    initializeDefaults();
+  })
+  .catch(err => console.error('Error connecting to MongoDB:', err));
+
+const schemaOptions = {
+  toJSON: { virtuals: true },
+  toObject: { virtuals: true }
+};
+
+// 1. User Schema
+const userSchema = new mongoose.Schema({
+  username: { type: String, required: true, unique: true },
+  password: { type: String, required: true }
+}, schemaOptions);
+const User = mongoose.model('User', userSchema);
+
+// 2. Appointment Schema
+const appointmentSchema = new mongoose.Schema({
+  name: { type: String, required: true },
+  phone: { type: String, required: true },
+  condition: String,
+  date: String,
+  message: String,
+  status: { type: String, default: 'pending' },
+  created_at: { type: Date, default: Date.now }
+}, schemaOptions);
+const Appointment = mongoose.model('Appointment', appointmentSchema);
+
+// 3. Setting Schema
+const settingSchema = new mongoose.Schema({
+  key: { type: String, required: true, unique: true },
+  value: { type: String }
+}, schemaOptions);
+const Setting = mongoose.model('Setting', settingSchema);
+
+// 4. Gallery Schema
+const gallerySchema = new mongoose.Schema({
+  image_path: { type: String, required: true },
+  created_at: { type: Date, default: Date.now }
+}, schemaOptions);
+const Gallery = mongoose.model('Gallery', gallerySchema);
+
+// Initialize default data
+async function initializeDefaults() {
+  try {
+    // Seed admin user
+    const admin = await User.findOne({ username: 'admin' });
+    if (!admin) {
+      const saltRounds = 10;
+      const hash = await bcrypt.hash('admin123', saltRounds);
+      await User.create({ username: 'admin', password: hash });
+      console.log('Default admin user created. (username: admin, password: admin123)');
+    }
+
+    // Seed default settings
+    const defaultSettings = [
+      { key: 'home_image', value: 'assets/clinic-front.jpg' },
+      { key: 'doctor_image', value: 'assets/doctor-amit-singh.jpg' },
+      { key: 'why_us_image', value: 'assets/remedies.jpg' },
+      { key: 'visitor_count', value: '0' }
+    ];
+
+    for (const setting of defaultSettings) {
+      const exists = await Setting.findOne({ key: setting.key });
+      if (!exists) {
+        await Setting.create(setting);
       }
-    });
-
-    // Create appointments table
-    db.run(`CREATE TABLE IF NOT EXISTS appointments (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      name TEXT,
-      phone TEXT,
-      condition TEXT,
-      date TEXT,
-      message TEXT,
-      status TEXT DEFAULT 'pending',
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    )`);
-
-    // Create settings table
-    db.run(`CREATE TABLE IF NOT EXISTS settings (
-      key TEXT PRIMARY KEY,
-      value TEXT
-    )`, (err) => {
-      if (!err) {
-        // Initialize default images
-        const defaultSettings = [
-          ['home_image', 'assets/clinic-front.jpg'],
-          ['doctor_image', 'assets/doctor-amit-singh.jpg'],
-          ['why_us_image', 'assets/remedies.jpg'],
-          ['visitor_count', '0']
-        ];
-        
-        defaultSettings.forEach(([key, value]) => {
-          db.run("INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)", [key, value]);
-        });
-      }
-    });
-
-    // Create gallery table
-    db.run(`CREATE TABLE IF NOT EXISTS gallery (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      image_path TEXT,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    )`);
+    }
+  } catch (err) {
+    console.error('Error initializing defaults:', err);
   }
-});
+}
 
-module.exports = db;
+module.exports = {
+  User,
+  Appointment,
+  Setting,
+  Gallery
+};
